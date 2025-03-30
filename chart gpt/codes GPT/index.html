@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUANAR Attendance Registration System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #4a90e2, #1456a3);
+            color: white;
+            text-align: center;
+            transition: background 0.3s ease-in-out;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 1.5s ease-in-out;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            animation: bounce 1s infinite alternate;
+        }
+
+        input,
+        button {
+            padding: 10px;
+            width: 250px;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .animated-button {
+            background: #ffcc00;
+            color: black;
+            cursor: pointer;
+            transition: transform 0.3s ease-in-out;
+            font-size: 16px;
+        }
+
+        .animated-button:hover {
+            transform: scale(1.1);
+        }
+
+        .attendance-list {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+
+        .attendance-list h2 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .attendance-record {
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 5px;
+            padding: 10px;
+            animation: slideIn 0.5s forwards;
+        }
+
+        .dark-mode {
+            background: linear-gradient(135deg, #222, #111);
+            color: #ffcc00;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-5px);
+            }
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title">LUANAR Attendance Registration</h1>
+        <button id="theme-toggle" class="animated-button">Toggle Dark Mode</button>
+        <form id="attendance-form" class="animated-form">
+            <input type="text" id="student-id" placeholder="Enter Student ID" required>
+            <input type="text" id="student-name" placeholder="Enter Student Name" required>
+            <button type="submit" class="animated-button">Mark Attendance</button>
+        </form>
+        <input type="text" id="search" placeholder="Search Attendance..." class="animated-button">
+        <div class="attendance-list">
+            <h2>Attendance List</h2>
+            <ul id="attendance-records"></ul>
+        </div>
+        <button id="export" class="animated-button">Export to CSV</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const form = document.getElementById("attendance-form");
+            const idInput = document.getElementById("student-id");
+            const nameInput = document.getElementById("student-name");
+            const recordsList = document.getElementById("attendance-records");
+            const searchInput = document.getElementById("search");
+            const exportBtn = document.getElementById("export");
+            const themeToggle = document.getElementById("theme-toggle");
+            let darkMode = false;
+
+            let attendanceData = JSON.parse(localStorage.getItem("attendance")) || [];
+
+            // Save the attendance data to localStorage
+            function saveAttendance() {
+                localStorage.setItem("attendance", JSON.stringify(attendanceData));
+            }
+
+            // Render the attendance list
+            function renderAttendance(filter = "") {
+                recordsList.innerHTML = "";
+                attendanceData.filter(({ id, name }) => id.includes(filter) || name.includes(filter)).forEach(({ id, name, time }) => {
+                    const listItem = document.createElement("li");
+                    listItem.classList.add("attendance-record");
+                    listItem.innerHTML = `<strong>${id}</strong> - ${name} <em>(${time})</em>`;
+                    recordsList.appendChild(listItem);
+                });
+            }
+
+            // Add attendance when the form is submitted
+            form.addEventListener("submit", (event) => {
+                event.preventDefault();
+                const studentId = idInput.value.trim();
+                const studentName = nameInput.value.trim();
+                const timestamp = new Date().toLocaleString();
+
+                if (studentId && studentName) {
+                    // Check for duplicate attendance
+                    if (!attendanceData.some(att => att.id === studentId)) {
+                        attendanceData.push({ id: studentId, name: studentName, time: timestamp });
+                        saveAttendance();
+                        renderAttendance();
+                    } else {
+                        alert("This student has already been marked present.");
+                    }
+
+                    idInput.value = "";
+                    nameInput.value = "";
+                }
+            });
+
+            // Search functionality
+            searchInput.addEventListener("input", () => {
+                renderAttendance(searchInput.value);
+            });
+
+            // Export attendance as CSV
+            exportBtn.addEventListener("click", () => {
+                let csvContent = "data:text/csv;charset=utf-8,ID,Name,Time\n" +
+                    attendanceData.map(({ id, name, time }) => `${id},${name},${time}`).join("\n");
+                let encodedUri = encodeURI(csvContent);
+                let link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "attendance.csv");
+                document.body.appendChild(link);
+                link.click();
+            });
+
+            // Toggle dark mode
+            themeToggle.addEventListener("click", () => {
+                document.body.classList.toggle("dark-mode");
+                darkMode = !darkMode;
+            });
+
+            renderAttendance();
+        });
+    </script>
+</body>
+
+</html>
